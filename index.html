@@ -1,0 +1,349 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trường Học Mèo AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+        body { 
+            font-family: 'Nunito', sans-serif; 
+            background-color: #fdf2f8; /* Pink-50 */
+            background-image: radial-gradient(#fbcfe8 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        /* New Image Cat Styles */
+        .cat-image-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        .cat-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+        }
+
+        /* Animations Keyframes for Images */
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        @keyframes shake { 0%, 100% { transform: rotate(0) translateX(0); } 25% { transform: rotate(8deg) translateX(4px); } 75% { transform: rotate(-8deg) translateX(-4px); } }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+        @keyframes zzzFloat { 0% { transform: translateY(0) scale(1); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-40px) scale(1.5); opacity: 0; } }
+
+        /* State Classes */
+        .state-idle .cat-img { animation: float 3s infinite ease-in-out; }
+        .state-sit .cat-img { transform: scale(0.95); }
+        .state-sleep .cat-img { opacity: 0.8; transform: scale(0.9); }
+        .state-eat .cat-img { animation: shake 0.6s infinite; }
+        .state-play .cat-img { animation: bounce 0.8s infinite; }
+
+        .prob-bar-fill { transition: width 0.3s ease-in-out, background-color 0.3s; }
+        
+        /* Custom scrollbar for table */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #fbcfe8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f472b6; }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- HEADER GIỐNG MẪU -->
+        <header class="mb-10 text-center">
+            <span class="inline-flex items-center gap-2 bg-pink-100 text-pink-600 px-5 py-1.5 rounded-full text-sm font-bold mb-4 shadow-sm border border-pink-200">
+🎓 Bài thi ICT - Dự án 1: Thú cưng Thông minh
+            </span>
+            <h1 class="text-4xl md:text-5xl font-black text-slate-800 mb-3 tracking-tight">Trường Học Mèo AI <i class="fas fa-cat text-pink-500"></i></h1>
+            <p class="text-slate-500 text-lg font-semibold">Áp dụng Thuật toán Học tăng cường (Reinforcement Learning)</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- CỘT TRÁI: KHU VỰC TƯƠNG TÁC -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                <!-- Sân khấu Mèo (Thiết kế bo góc trắng giống mẫu) -->
+                <div class="bg-white/90 backdrop-blur-md rounded-[2.5rem] shadow-xl p-8 border-4 border-white flex flex-col items-center justify-between min-h-[420px] relative">
+                    
+                    <!-- Khung thoại -->
+                    <div id="dialogue-box" class="absolute top-6 bg-white px-6 py-3 rounded-2xl shadow-sm border-2 border-pink-100 font-bold text-lg text-slate-600 max-w-[90%] text-center z-10 transition-colors duration-300">
+                        Meo~ Bạn muốn mình làm gì nào?
+                    </div>
+                    
+                    <!-- Hình ảnh Mèo -->
+                    <div id="cat" class="cat-image-container state-idle w-56 h-56 mt-16 mb-4">
+                        <div id="cat-placeholder" class="text-6xl text-pink-200 flex flex-col items-center justify-center h-full w-full transition-opacity hidden">
+                            <i class="fas fa-cat mb-4 text-8xl"></i>
+                            <span class="text-base font-bold text-pink-400 text-center drop-shadow-sm">Hãy để file web và 5 ảnh<br>ở chung 1 thư mục nhé!</span>
+                        </div>
+                        <img id="catImg" src="Macdinh.jpg" alt="Cat" class="cat-img" onerror="this.classList.add('hidden'); document.getElementById('cat-placeholder').classList.remove('hidden')">
+                    </div>
+
+                    <!-- Label trạng thái -->
+                    <div id="action-label" class="mt-auto font-black text-2xl text-slate-300 tracking-wide bg-white/50 px-8 py-2 rounded-full">
+                        Đang đợi lệnh...
+                    </div>
+                </div>
+
+                <!-- Bảng Điều Khiển -->
+                <div class="bg-white rounded-3xl shadow-lg p-6 border-2 border-pink-50">
+                    <h2 class="text-lg font-bold mb-4 text-slate-700"><i class="fas fa-microphone-alt text-pink-400 mr-2"></i>1. Ra lệnh cho mèo</h2>
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <button onclick="issueCommand('Ngồi')" class="btn-cmd py-3 bg-slate-50 hover:bg-pink-100 text-slate-600 font-bold rounded-2xl transition-all border border-slate-200 focus:ring-4 focus:ring-pink-200 hover:shadow-md hover:-translate-y-1">
+<i class="fas fa-arrow-down text-pink-400 mr-2"></i>Ngồi
+                        </button>
+                        <button onclick="issueCommand('Ngủ')" class="btn-cmd py-3 bg-slate-50 hover:bg-pink-100 text-slate-600 font-bold rounded-2xl transition-all border border-slate-200 focus:ring-4 focus:ring-pink-200 hover:shadow-md hover:-translate-y-1">
+                            <i class="fas fa-moon text-indigo-400 mr-2"></i>Ngủ
+                        </button>
+                        <button onclick="issueCommand('Ăn')" class="btn-cmd py-3 bg-slate-50 hover:bg-pink-100 text-slate-600 font-bold rounded-2xl transition-all border border-slate-200 focus:ring-4 focus:ring-pink-200 hover:shadow-md hover:-translate-y-1">
+                            <i class="fas fa-fish text-orange-400 mr-2"></i>Ăn
+                        </button>
+                        <button onclick="issueCommand('Chơi')" class="btn-cmd py-3 bg-slate-50 hover:bg-pink-100 text-slate-600 font-bold rounded-2xl transition-all border border-slate-200 focus:ring-4 focus:ring-pink-200 hover:shadow-md hover:-translate-y-1">
+                            <i class="fas fa-yarn text-purple-400 mr-2"></i>Chơi
+                        </button>
+                    </div>
+
+                    <h2 class="text-lg font-bold mb-4 text-slate-700"><i class="fas fa-balance-scale text-pink-400 mr-2"></i>2. Phản hồi (Huấn luyện)</h2>
+                    <div class="flex gap-4">
+                        <button id="btnReward" onclick="giveFeedback('reward')" disabled class="flex-1 py-4 bg-emerald-400 hover:bg-emerald-500 text-white font-bold rounded-2xl transition-all disabled:opacity-40 disabled:cursor-not-allowed transform active:scale-95 shadow-lg shadow-emerald-200">
+                            <i class="fas fa-bone mr-2"></i>Thưởng (+15)
+                        </button>
+                        <button id="btnPunish" onclick="giveFeedback('punish')" disabled class="flex-1 py-4 bg-rose-400 hover:bg-rose-500 text-white font-bold rounded-2xl transition-all disabled:opacity-40 disabled:cursor-not-allowed transform active:scale-95 shadow-lg shadow-rose-200">
+                            <i class="fas fa-times-circle mr-2"></i>Phạt (-5)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: NÃO BỘ AI & PHÂN TÍCH -->
+            <div class="lg:col-span-7 bg-white rounded-3xl shadow-lg p-6 border-2 border-pink-50 h-fit">
+                <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                    <h2 class="text-2xl font-black text-slate-700"><i class="fas fa-brain text-pink-400 mr-2"></i>Bảng Phân Tích "Não Bộ"</h2>
+                    <span class="text-sm bg-pink-100 text-pink-600 px-4 py-1.5 rounded-full font-bold shadow-sm border border-pink-200">Lượt huấn luyện: <span id="turnCount">0</span></span>
+                </div>
+<p class="text-sm text-slate-500 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <i class="fas fa-lightbulb text-amber-400 mr-2"></i>Ban đầu, mèo chưa hiểu lệnh nên xác suất làm các hành động là <strong>bằng nhau (25%)</strong>. Hãy dùng Thưởng/Phạt để thay đổi xác suất này!
+                </p>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600">
+                                <th class="p-4 font-bold w-1/4 border-b border-slate-200">Bạn hô lệnh</th>
+                                <th class="p-4 font-bold border-b border-slate-200">Xác suất hành động của mèo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="memoryTableBody">
+                            <!-- Bảng não bộ sẽ được render bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hệ thống Logic AI (JavaScript) -->
+    <script>
+        // 1. Khởi tạo dữ liệu
+        const actions = ['Ngồi', 'Ngủ', 'Ăn', 'Chơi'];
+        const actionClasses = { 'Ngồi': 'state-sit', 'Ngủ': 'state-sleep', 'Ăn': 'state-eat', 'Chơi': 'state-play' };
+        
+        // Cố định hình ảnh bằng tên file bạn đã cung cấp
+        const catImages = {
+            'Idle': 'Macdinh.jpg',
+            'Ngồi': 'Ngoi.jpg',
+            'Ngủ': 'Ngu.jpg',
+            'Ăn': 'An.jpg',
+            'Chơi': 'Choi.jpg'
+        };
+
+        let currentCommand = null;
+        let lastActionTaken = null;
+        let turn = 0;
+
+        // Ma trận Trọng số (Weights)
+        let knowledgeBase = {};
+        actions.forEach(cmd => {
+            knowledgeBase[cmd] = {};
+            actions.forEach(act => knowledgeBase[cmd][act] = 10);
+        });
+
+        const catElement = document.getElementById('cat');
+        const dialogueBox = document.getElementById('dialogue-box');
+        const actionLabel = document.getElementById('action-label');
+        const btnReward = document.getElementById('btnReward');
+        const btnPunish = document.getElementById('btnPunish');
+        const turnCountEl = document.getElementById('turnCount');
+
+        // Hàm tính xác suất
+        function getProbabilities(command) {
+            const weights = knowledgeBase[command];
+            let totalWeight = 0;
+            for (let a in weights) totalWeight += weights[a];
+            
+            let probs = {};
+            for (let a in weights) {
+                probs[a] = (weights[a] / totalWeight) * 100;
+            }
+            return probs;
+        }
+
+        // AI chọn hành động dựa trên xác suất
+        function chooseAction(command) {
+const weights = knowledgeBase[command];
+            let totalWeight = 0;
+            for (let a in weights) totalWeight += weights[a];
+
+            let randomNum = Math.random() * totalWeight;
+            let weightSum = 0;
+
+            for (let a in weights) {
+                weightSum += weights[a];
+                if (randomNum <= weightSum) {
+                    return a;
+                }
+            }
+            return actions[0];
+        }
+
+        // Xử lý khi bấm nút ra lệnh
+        function issueCommand(command) {
+            currentCommand = command;
+            
+            // Đổi style các nút
+            document.querySelectorAll('.btn-cmd').forEach(btn => btn.classList.remove('ring-4', 'ring-pink-200', 'bg-pink-100', 'border-pink-300'));
+            event.currentTarget.classList.add('ring-4', 'ring-pink-200', 'bg-pink-100', 'border-pink-300');
+
+            // Mèo chọn hành động
+            lastActionTaken = chooseAction(command);
+
+            // Đổi hình và hiệu ứng
+            catElement.className = `cat-image-container ${actionClasses[lastActionTaken]} w-56 h-56 mt-16 mb-4`;
+            document.getElementById('catImg').src = catImages[lastActionTaken];
+            
+            // Cập nhật text UI
+            actionLabel.innerText = lastActionTaken.toUpperCase() + "...";
+            actionLabel.className = "mt-auto font-black text-2xl tracking-wide bg-white/50 px-8 py-2 rounded-full " + 
+                                    (currentCommand === lastActionTaken ? "text-emerald-500" : "text-slate-500");
+
+            if (currentCommand === lastActionTaken) {
+                dialogueBox.innerHTML = `Lệnh: "${command}" <i class="fas fa-check text-emerald-500 mx-1"></i> Làm đúng!`;
+                dialogueBox.classList.add('border-emerald-200', 'text-emerald-600');
+                dialogueBox.classList.remove('border-pink-100', 'text-slate-600', 'border-rose-200', 'text-rose-600');
+            } else {
+                dialogueBox.innerHTML = `Lệnh: "${command}" <i class="fas fa-times text-rose-500 mx-1"></i> Mình đang "${lastActionTaken}"`;
+                dialogueBox.classList.add('border-rose-200', 'text-rose-600');
+                dialogueBox.classList.remove('border-pink-100', 'text-slate-600', 'border-emerald-200', 'text-emerald-600');
+            }
+
+            // Mở khóa nút Thưởng Phạt
+            btnReward.disabled = false;
+            btnPunish.disabled = false;
+            
+            // Highlight gợi ý Thưởng/Phạt
+            if(currentCommand === lastActionTaken){
+                btnReward.classList.add('animate-pulse', 'ring-4', 'ring-emerald-200');
+                btnPunish.classList.remove('animate-pulse', 'ring-4', 'ring-rose-200');
+            } else {
+                btnPunish.classList.add('animate-pulse', 'ring-4', 'ring-rose-200');
+                btnReward.classList.remove('animate-pulse', 'ring-emerald-200');
+            }
+        }
+// Xử lý nút Thưởng/Phạt
+        function giveFeedback(type) {
+            if (!currentCommand || !lastActionTaken) return;
+
+            turn++;
+            turnCountEl.innerText = turn;
+
+            btnReward.classList.remove('animate-pulse', 'ring-4', 'ring-emerald-200');
+            btnPunish.classList.remove('animate-pulse', 'ring-4', 'ring-rose-200');
+
+            if (type === 'reward') {
+                knowledgeBase[currentCommand][lastActionTaken] += 15;
+                showFloatText('❤️ Tốt lắm!', 'text-emerald-500');
+            } else if (type === 'punish') {
+                knowledgeBase[currentCommand][lastActionTaken] = Math.max(1, knowledgeBase[currentCommand][lastActionTaken] - 5);
+                showFloatText('💢 Sai rồi!', 'text-rose-500');
+            }
+
+            // Đưa UI về trạng thái mặc định
+            setTimeout(() => {
+                catElement.className = `cat-image-container state-idle w-56 h-56 mt-16 mb-4`;
+                document.getElementById('catImg').src = catImages['Idle'];
+                
+                dialogueBox.innerHTML = "Meo~ Bạn muốn mình làm gì nào?";
+                dialogueBox.className = "absolute top-6 bg-white px-6 py-3 rounded-2xl shadow-sm border-2 border-pink-100 font-bold text-lg text-slate-600 max-w-[90%] text-center z-10 transition-colors duration-300";
+                
+                actionLabel.innerText = "Đang đợi lệnh...";
+                actionLabel.className = "mt-auto font-black text-2xl tracking-wide bg-white/50 px-8 py-2 rounded-full text-slate-300";
+            }, 500);
+            
+            btnReward.disabled = true;
+            btnPunish.disabled = true;
+            document.querySelectorAll('.btn-cmd').forEach(btn => btn.classList.remove('ring-4', 'ring-pink-200', 'bg-pink-100', 'border-pink-300'));
+
+            currentCommand = null;
+            lastActionTaken = null;
+
+            renderMemoryTable();
+        }
+
+        // Hiệu ứng chữ bay lên
+        function showFloatText(text, colorClass) {
+            const floatEl = document.createElement('div');
+            floatEl.className = `absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-3xl font-black ${colorClass} z-50 pointer-events-none drop-shadow-md`;
+            floatEl.innerText = text;
+            floatEl.style.animation = 'zzzFloat 1.5s forwards';
+            catElement.parentElement.appendChild(floatEl);
+            setTimeout(() => floatEl.remove(), 1500);
+        }
+
+        // Render Bảng Não Bộ
+        function renderMemoryTable() {
+            const tbody = document.getElementById('memoryTableBody');
+            tbody.innerHTML = '';
+
+            actions.forEach(cmd => {
+                const probs = getProbabilities(cmd);
+                let row = `<tr class="border-b border-slate-100 hover:bg-pink-50/50 transition-colors">
+<td class="p-4 font-bold text-pink-500 border-r border-slate-100 align-middle"><i class="fas fa-comment-dots mr-2 text-slate-300"></i>"${cmd}"</td>
+                            <td class="p-4 flex gap-3 flex-col justify-center">`;
+                
+                actions.forEach(act => {
+                    let percent = probs[act];
+                    let barColor = 'bg-slate-200';
+                    let textColor = 'text-slate-500';
+                    let fontWeight = 'font-semibold';
+                    
+                    if (percent > 60) { barColor = 'bg-emerald-400'; textColor = 'text-emerald-600'; fontWeight = 'font-bold'; }
+                    else if (percent > 30) { barColor = 'bg-sky-400'; textColor = 'text-sky-600'; }
+                    else if (percent < 10) { barColor = 'bg-rose-200'; textColor = 'text-rose-400'; }
+
+                    row += `
+                        <div class="flex items-center text-sm w-full">
+                            <span class="w-14 ${textColor} ${fontWeight}">${act}</span>
+                            <div class="flex-1 bg-slate-100 h-5 rounded-full overflow-hidden mx-3 shadow-inner border border-slate-200/50">
+                                <div class="h-full prob-bar-fill ${barColor}" style="width: ${percent}%"></div>
+                            </div>
+                            <span class="w-14 text-right ${textColor} ${fontWeight}">${percent.toFixed(1)}%</span>
+                        </div>
+                    `;
+                });
+                row += `</td></tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // Khởi tạo
+        renderMemoryTable();
+    </script>
+</body>
+</html>
